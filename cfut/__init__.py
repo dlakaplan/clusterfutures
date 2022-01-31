@@ -1,5 +1,6 @@
 """Python futures for Condor clusters."""
 from concurrent import futures
+import datetime
 import os
 import sys
 import threading
@@ -13,6 +14,10 @@ import cloudpickle
 __version__ = '0.4'
 
 LOGFILE_FMT = local_filename('cfut.log.%s.txt')
+
+def hostinfo():
+    return subprocess.check_output('uname -a', shell=True)
+
 
 class RemoteException(Exception):
     def __init__(self, error):
@@ -98,7 +103,7 @@ class ClusterExecutor(futures.Executor):
             if not self.jobs:
                 self.jobs_empty_cond.notify_all()
         if self.debug:
-            print("job completed: %i" % jobid, file=sys.stderr)
+            print("job completed: %i at %s" % (jobid,datetime.datetime.now().isoformat()), file=sys.stderr)
 
         with open(OUTFILE_FMT % workerid, 'rb') as f:
             outdata = f.read()
@@ -131,7 +136,7 @@ class ClusterExecutor(futures.Executor):
         jobid = self._start(workerid, additional_setup_lines)
 
         if self.debug:
-            print("job submitted: %i" % jobid, file=sys.stderr)
+            print("job submitted: %i at %s" % (jobid, datetime.datetime.now().isoformat()), file=sys.stderr)
 
         # Thread will wait for it to finish.
         self.wait_thread.wait(OUTFILE_FMT % workerid, jobid)
